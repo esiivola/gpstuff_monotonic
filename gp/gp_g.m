@@ -258,15 +258,11 @@ switch gp.type
               if ~isempty(DKffa)
                 DKdf = gpcf.fh.cfdg(gpcf, gp.xv, x);
                 DKdd = gpcf.fh.cfdg2(gpcf, gp.xv);
-                if isfield(gp, 'nvi')
-                    inds = gp.nvi;
-                elseif isfield(gp, 'nvd')
-                  % Select monotonic dimensions
-                  inds=[];
-                  nvd=abs(gp.nvd);
-                  for idd=1:length(gp.nvd)
-                    inds=[inds size(gp.xv,1)*(nvd(idd)-1)+1:size(gp.xv,1)*nvd(idd)];
-                  end
+                % Select monotonic dimensions
+                inds=[];
+                nvd=abs(gp.nvd);
+                for idd=1:length(gp.nvd)
+                  inds=[inds size(gp.xv,1)*(nvd(idd)-1)+1:size(gp.xv,1)*nvd(idd)];
                 end
                 for ijj=1:length(DKffa)
                   DKdf{ijj}=DKdf{ijj}(inds,:);
