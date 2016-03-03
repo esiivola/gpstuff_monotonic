@@ -1,4 +1,4 @@
-function [K, C] = gp_dtrcov(gp, x1, x2,predcf)
+function [K, C] = gp_dtrcov(gp, x1, x2, predcf)
 %GP_DTRCOV  Evaluate training covariance matrix (gp_cov + noise covariance).
 %
 %  Description
@@ -18,21 +18,32 @@ function [K, C] = gp_dtrcov(gp, x1, x2,predcf)
 % Copyright (c) 2006-2010 Jarno Vanhatalo
 % Copyright (c) 2010 Tuomas Nikoskinen
 % Copyright (c) 2014 Ville Tolvanen
+% Copyright (c) 2016 Eero Siivola
 
 % This software is distributed under the GNU General Public
 % License (version 3 or later); please refer to the file
 % License.txt, included with the software, for details.
-
+% IT IS ASSUMED THAT x2 == XV
 if (isfield(gp,'derivobs') && gp.derivobs)
   ncf=length(gp.cf);
   [n,m]=size(x2);
-  if isfield(gp, 'nvd')
-    % Only specific dimensions
-    ii1=abs(gp.nvd);
-  else
-    ii1=1:m;
+  if isfield(gp, 'nvi') % Specific points are assumed important
+    is = gp.nvi;
+    isda = abs(gp.nvi);
+    isn = n*(isda-1) + is; %contains indices that we want from the derivative matrices
+  elseif isfield(gp, 'nvd')  & (size(x2) == size(gp.xv)) % Only defined dimensions are assumed monotonic
+     % Only specific dimensions
+    is = repmat(1:n,1, length(gp.nvd));
+    isd = repmat(abs(gp.nvd), n, 1);
+    isda = isd(:)';
+    isn = n*(isda-1) + is;
+  else %% All dimensions are assumed monoptonic
+    is = repmat(1:n,1, m);
+    isd = repmat(1:m, n, 1);
+    isda = isd(:)';
+    isn = n*(isda-1) + is;
   end
-  K=zeros(length(x1)+length(ii1).*length(x2));
+  K=zeros(length(x1)+length(isn));
   % Loop over covariance functions
   for i=1:ncf
     % Derivative observations
@@ -60,9 +71,11 @@ if (isfield(gp,'derivobs') && gp.derivobs)
       D= gpcf.fh.ginput2(gpcf, x2, x2);
       Kdf2 = gpcf.fh.ginput3(gpcf, x2 ,x2);
       
-      Kfd=cat(1,G{ii1});
+      Kfd = cat(1,G{1:m});
+      Kfd = Kfd(isn,:);
 %       Kfd=[G{1:m}];
-      
+
+
       % Now build up Kdd m*n x m*n matrix, which contains all the
       % both partial derivative" -matrices
       Kdd=blkdiag(D{1:m});
@@ -89,23 +102,14 @@ if (isfield(gp,'derivobs') && gp.derivobs)
       
       if isfield(gp, 'nvd')
         % Collect the monotonic dimensions
-        Kddtmp=[];
-        for ii2=1:length(ii1)
-          for ii3=ii2:length(ii1)
-            Kddtmp((ii2-1)*n+1:ii2*n, (ii3-1)*n+1:ii3*n) = ...
-              Kdd((ii1(ii2)-1)*n+1:ii1(ii2)*n,(ii1(ii3)-1)*n+1:ii1(ii3)*n);
-            if ii2~=ii3
-              Kddtmp((ii3-1)*n+1:ii3*n, (ii2-1)*n+1:ii2*n) = ...
-                Kdd((ii1(ii3)-1)*n+1:ii1(ii3)*n,(ii1(ii2)-1)*n+1:ii1(ii2)*n);
-            end
-          end
-        end
-        Kdd=Kddtmp;
+        Kdd = Kdd(isn, isn);
+
       end
       
       % Gather all the matrices into one final matrix K which is the
       % training covariance matrix
       K = K+[Kff Kfd'; Kfd Kdd];
+      
       [a b] = size(K);
     end    
   end  

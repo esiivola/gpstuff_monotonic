@@ -61,6 +61,7 @@ function [Eft, Varft, lpyt, Eyt, Varyt] = gpep_predgrad(gp, x, y, varargin)
 % Copyright (c) 2011      Pasi Jylänki
 % Copyright (c) 2012 Aki Vehtari
 % Copyright (c) 2014 Ville Tolvanen
+% Copyright (c) 2016 Eero Siivola
 
 % This software is distributed under the GNU General Public
 % License (version 3 or later); please refer to the file
@@ -143,17 +144,25 @@ function [Eft, Varft, lpyt, Eyt, Varyt] = gpep_predgrad(gp, x, y, varargin)
         yv=round(gp.nvd./abs(gp.nvd));
         y=bsxfun(@times,yv,ones(size(gp.xv,1),length(gp.nvd)));
         [K,C]=gp_dtrcov(gp,x2,x);
-        kstarstar = diag(gp_dtrcov(gp,xt,xt, predcf));
+        kstarstar = diag(gp_dtrcov(gp, xt, xt, predcf));
         kstarstar(1:size(xt,1))=[];
-        %           kstarstar=kstarstar(1:size(xt,1));
+        %kstarstar=kstarstar(1:size(xt,1));
         ntest=size(xt,1);
         K_nf=gp_dcov(gp,x2,xt,predcf)';
         K_nf(1:size(xt,1),:)=[];
+        %K_nf(ntest+1:end,:)=[];
         [n,nin] = size(x);
         
         [Eft,V]=pred_var(tautilde,K,K_nf,nutilde);
         Varft=kstarstar-V;
-          
+        %Select monotonic dimensions
+%         nt= size(xt,1);
+%         is = repmat(1:nt,1, length(gp.nvd));
+%         isd = repmat(abs(gp.nvd), nt, 1);
+%         isda = isd(:)';
+%         isn = nt*(isda-1) + is;
+%         Eft = Eft(isn);
+%         Varft = Varft(isn);
         % ============================================================
         % FIC
         % ============================================================
