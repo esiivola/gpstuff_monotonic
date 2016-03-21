@@ -601,7 +601,8 @@ function [g, gdata, gprior] = gpep_g(w, gp, x, y, varargin)
             A=bsxfun(@times,tautilde,L');   % Sf = L'*L;
             b=nutilde-A*(L*nutilde);        % (eye(n)-diag(tautilde)*Sf)\nutilde
             A=-A*A';                         % = -diag(tautilde)*Sf*diag(tautilde)
-            A(1:n+1:end)=A(1:n+1:end)+tautilde'; % diag(tautilde)-diag(tautilde)*Sf*diag(tautilde)
+            nt = size(A,1);
+            A(1:nt+1:end)=A(1:nt+1:end)+tautilde'; % diag(tautilde)-diag(tautilde)*Sf*diag(tautilde)
             invC = A;
 
           else

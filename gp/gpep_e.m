@@ -569,34 +569,17 @@ end
             if isfield(gp, 'lik_mono')
               x2=x;
               y2=y;
+              x=gp.xv;
               if isfield(gp, 'bc')
-                % Find round(nv/2) smallest and round(size(y)-nv/2) largest in each dimension in nvbd
-                nl = round(gp.nv/2); nh = round(size(y) -gp.nv/2);
-                x=zeros((nl+nh)*length(gp.nvbd(1,:)), size(x2,2));
-                y=zeros((nl+nh)*length(gp.nvbd(1,:)),1);
-                isn=zeros((nl+nh)*length(gp.nvbd(1,:)),1);
-                for i=1:length(gp.nvbd(1,:))
-                  j = abs(gp.nvbd(1,i)); % Current dimension
-                  lv = gp.nvbd(1,i)/j; % Direction of partial derivative at low values
-                  hv = gp.nvbd(2,i)/abs(gp.nvbd(2,i)); % Direction of partial derivative at high values
-                  [~,ind(:,j)]=sort(x2(:,j),'ascend'); % Sort training sample values in this direction
-                  lit = ind(:, 1:nl); hit = ind(:, nh:end); % find indices of nl smallest and nh largest
-                  x((i-1)*gb.nv+1:i*gb.nv,:) = [x2(lit,:); x2(hit,:)];
-                  y((i-1)*gb.nv+1:i*gb.nv) = [lv*ones(nl,1); hv*ones(nh,1)];
-                  isn((i-1)*gb.nv+1:i*gb.nv) = (j-1)*gp.nv+1:j*gp.nv;
-                end
-                gb.nvi = isn;
-                gp.xv = x;
+                y = gp.yv;
+                y = y(:);
               else
-                x=gp.xv;
                 %y=gp.yv.*ones(size(x,1).*length(gp.nvd),1);
                 yv=round(gp.nvd./abs(gp.nvd));
                 y=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
                 y=y(:);
               end
             end
-            
-            
             % The parameters or data have changed since
             % the last call for gpep_e. In this case we need to
             % re-evaluate the EP approximation

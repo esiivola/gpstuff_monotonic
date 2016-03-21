@@ -77,12 +77,15 @@ nvbd=ip.Results.nvbd;
 if ~isfield(gp, 'lik_mono') || ~ismember(gp.lik_mono.type, {'Probit', 'Logit'}) 
   gp.lik_mono=lik_probit();
 end
+gp.bc=1;
 gp.derivobs=1;
 % Set the virtual observations, here we use 25% of the observations as
 % virtual points at initialization
 if isempty(nv)
   frac=0.1;
   nv=floor(frac.*size(x,1));
+else
+  gp.nv=nv;
 end
 if ~isempty(nvbd)
   gp.nvbd=nvbd;
@@ -95,20 +98,26 @@ else
     end
   end
 end
-nvd=length(gp.nvd);
-if ~isfield(gp, 'xv')
-  switch init
-    case 'sample'
-      rpii=randperm(size(x,1));
-      gp.xv=x(rpii(1:nv),:);
-    case 'kmeans'
-      S=warning('off','stats:kmeans:EmptyCluster');
-      [tmp,xv]=kmeans(x, nv, 'Start','uniform', ...
-                      'EmptyAction', 'singleton');
-      warning(S);
-  end
+
+% Find round(nv/2) smallest and round(size(y)-nv/2) largest in each dimension in nvbd
+nl = round(gp.nv/2); nh = gp.nv - round(gp.nv/2);
+xv=zeros((nl+nh)*length(gp.nvbd(1,:)), size(x,2));
+yv=zeros((nl+nh)*length(gp.nvbd(1,:)),1);
+isn=zeros((nl+nh)*length(gp.nvbd(1,:)),1);
+for i=1:length(gp.nvbd(1,:))
+  j = abs(gp.nvbd(1,i)); % Current dimension
+  lv = gp.nvbd(1,i)/j; % Direction of partial derivative at low values
+  hv = gp.nvbd(2,i)/abs(gp.nvbd(2,i)); % Direction of partial derivative at high values
+  [~,ind(:,j)]=sort(x(:,j),'ascend'); % Sort training sample values in this direction
+  lit = ind(1:nl,:); hit = ind(end-nh+1:end, :); % find indices of nl smallest and nh largest
+  xv((i-1)*gp.nv+1:i*gp.nv,:) = [x(lit,:); x(hit,:)];
+  yv((i-1)*gp.nv+1:i*gp.nv) = [lv*ones(nl,1); hv*ones(nh,1)];
+  isn((i-1)*gp.nv+1:i*gp.nv) = (j-1)*gp.nv+1:j*gp.nv;
 end
-xv=gp.xv;
+gp.nvi = isn;
+gp.xv = xv;
+gp.yv = yv;
+                
 if isempty(opt) || ~isfield(opt, 'TolX')
   % No options structure given or not a proper options structure
   opt=optimset('TolX',1e-4,'TolFun',1e-4,'Display','iter');
