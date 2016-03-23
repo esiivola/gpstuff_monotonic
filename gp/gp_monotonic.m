@@ -78,7 +78,7 @@ x=ip.Results.x;
 y=ip.Results.y;
 z=ip.Results.z;
 nu=ip.Results.nu;
-nv=ip.Results.nv;
+if (ip.Results.nv> size(x,1)) nv = size(x,1); else nv = ip.Results.nv;end;
 init=ip.Results.init;
 opt=ip.Results.opt;
 optimf=ip.Results.optimf;

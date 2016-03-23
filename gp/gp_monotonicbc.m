@@ -67,7 +67,7 @@ ip.parse(gp, varargin{:});
 x=ip.Results.x;
 y=ip.Results.y;
 z=ip.Results.z;
-nv=ip.Results.nv;
+if (ip.Results.nv> size(x,1)) nv = size(x,1); else nv = ip.Results.nv;end;
 opt=ip.Results.opt;
 optimf=ip.Results.optimf;
 optimize=ip.Results.optimize;
