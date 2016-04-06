@@ -158,7 +158,7 @@ function [Eft, Covft, ljpyt] = gpep_jpred(gp, x, y, varargin)
       else
         x2=x;
         y2=y;
-        x=gp.xv;
+        x= gp.deriv_x_vals; %gp.xv;
         [K,C]=gp_dtrcov(gp,x2,x);
         kstarstar=gp_trcov(rmfield(gp,{'derivobs','lik_mono'}),xt);
         ntest=size(xt,1);

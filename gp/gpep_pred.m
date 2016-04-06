@@ -376,7 +376,7 @@ function [Eft, Varft, lpyt, Eyt, Varyt] = gpep_pred(gp, x, y, varargin)
           else
             x2=x;
             y2=y;
-            x=gp.xv;
+            x=gp.deriv_x_vals;%gp.xv;
             [K,C]=gp_dtrcov(gp,x2,x);
             kstarstar=gp_trvar(rmfield(gp,'derivobs'),xt);
             ntest=size(xt,1);

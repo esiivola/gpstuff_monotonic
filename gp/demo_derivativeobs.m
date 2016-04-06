@@ -107,13 +107,13 @@ disp('GP model with derivative obs')
 
 % Option derivobs set so that the derivatives are in use
 gp = gp_set('cf', gpcf, 'derivobs', 'on');
-
+gp = gp_der(gp, x([1  6]), dy([1 6]));
 % Set the options for the optimization
 opt=optimset('TolFun',1e-3,'TolX',1e-3,'DerivativeCheck','on');
 % Optimize with the scaled conjugate gradient method
-gp=gp_optim(gp,x,y2,'opt',opt);
+gp=gp_optim(gp,x,y,'opt',opt);
 % Do the prediction
-[Eft2, Varft2] = gp_pred(gp, x, y2, xt);
+[Eft2, Varft2] = gp_pred(gp, x, y, xt);
 % Use predictions for function values only
 Eft2=Eft2(1:nt);Varft2=Varft2(1:nt);
 

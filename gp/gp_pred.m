@@ -176,6 +176,11 @@ if iscell(gp) || numel(gp.jitterSigma2)>1 || isfield(gp,'latent_method')
   return
 end
 
+% If latent method is not in use
+if isfield(gp, 'derivobs') && gp.derivobs
+  y = [y(1:size(x,1)); gp.deriv_y_vals(gp.deriv_i)];
+end
+
 tn = size(x,1);
 if nargout > 2 && isempty(yt)
   lpyt=[];
@@ -223,7 +228,7 @@ switch gp.type
       %evaluate a = C\y;
       % -------------------
       if isfield(gp, 'lik_mono')
-        [K,C] = gp_dtrcov(gp, x, gp.xv);
+        [K,C] = gp_dtrcov(gp, x, gp.deriv_x_vals); %gp.xv);
       else
         [K, C] = gp_trcov(gp, x);
       end
@@ -245,10 +250,12 @@ switch gp.type
       nxt = size(xt,1); nblock=10000;
       ind = ceil(nxt./nblock);
       Eft = zeros(nxt,1);    % Mean
-      if isfield(gp,'derivobs') && gp.derivobs==1
-        nderobs = length(y)./length(x);
-        Eft = zeros(nxt,1)*nderobs;    % Mean
-      end
+% Obsolete -->
+%       if isfield(gp,'derivobs') && gp.derivobs==1 
+%         nderobs = length(y)./length(x);
+%         Eft = zeros(nxt,1)*nderobs;    % Mean
+%       end
+%  <--
       Varft = zeros(nxt,1);    % Variance
       
       for i1=1:ind
@@ -264,8 +271,8 @@ switch gp.type
           K=gp_cov(gp,x,xt(xtind,:),predcf);
         end
         if isfield(gp,'derivobs') && gp.derivobs==1 && ~isfield(gp,'lik_mono')
-          for k2=2:nderobs
-            xtind2 = [xtind2 xtind+length(xt)*(k2-1)];
+          for k2=1:size(x,2) %k2=2:nderobs
+            xtind2 = [xtind2 xtind+length(xt)*k2]; %[xtind2 xtind+length(xt)*(k2-1)];
           end
         end
         if ~isempty(K)

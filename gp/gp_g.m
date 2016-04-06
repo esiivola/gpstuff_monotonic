@@ -43,6 +43,10 @@ if isfield(gp,'latent_method') && ~strcmp(gp.latent_method,'MCMC')
   end
   return
 end
+% If latent method is not in use, then needs to be extended
+if isfield(gp, 'derivobs') && gp.derivobs
+  y = [y(1:size(x,1)); gp.deriv_y_vals(gp.deriv_i)];
+end
 
 ip=inputParser;
 ip.FunctionName = 'GP_G';
@@ -120,7 +124,7 @@ switch gp.type
     if ~isfield(gp.lik, 'nondiagW') || ismember(gp.lik.type, {'LGP' 'LGPC'})
       % Evaluate covariance
       if isfield(gp, 'lik_mono')
-        [K,C] = gp_dtrcov(gp, x, gp.xv);
+        [K,C] = gp_dtrcov(gp, x, gp.deriv_x_vals); %gp.xv);
 %         if isequal(gp.lik.type, 'Gaussian')
 %           % Condition the derivatives on the observations
 %           cc=C(size(x,1)+1:end,size(x,1)+1:end);
@@ -250,24 +254,15 @@ switch gp.type
           gprior_cf = -gpcf.fh.lpg(gpcf);
         else
           [n m]=size(x);
+          [n2, m2] = size(gp.deriv_x_vals);
           %Case: input dimension is 1
           if isfield(gp, 'lik_mono')
               savememory=0;
-              [n, m]=size(x);
               DKffa = gpcf.fh.cfg(gpcf, x);
               if ~isempty(DKffa)
-                DKdf = gpcf.fh.cfdg(gpcf, gp.xv, x);
-                DKdd = gpcf.fh.cfdg2(gpcf, gp.xv);
-                if isfield(gp, 'nvi')
-                    inds = gp.nvi;
-                elseif isfield(gp, 'nvd')
-                  % Select monotonic dimensions
-                  inds=[];
-                  nvd=abs(gp.nvd);
-                  for idd=1:length(gp.nvd)
-                    inds=[inds size(gp.xv,1)*(nvd(idd)-1)+1:size(gp.xv,1)*nvd(idd)];
-                  end
-                end
+                DKdf = gpcf.fh.cfdg(gpcf, gp.deriv_x_vals, x ); % gp.xv, x);
+                DKdd = gpcf.fh.cfdg2(gpcf, gp.deriv_x_vals); % gp.xv);
+                inds = gp.deriv_i(:);
                 for ijj=1:length(DKffa)
                   DKdf{ijj}=DKdf{ijj}(inds,:);
                   DKdd{ijj}=DKdd{ijj}(inds,inds);
@@ -284,14 +279,17 @@ switch gp.type
 
               DKffa = gpcf.fh.cfg(gpcf, x);
               DKdf = gpcf.fh.cfdg(gpcf, x);
+              DKdf2 = gpcf.fh.cfdg(gpcf, gp.deriv_x_vals, x);
               DKdd = gpcf.fh.cfdg2(gpcf, x);
+              DKdd2 = gpcf.fh.cfdg2(gpcf, gp.deriv_x_vals);
               gprior_cf = -gpcf.fh.lpg(gpcf);
               
               np=length(DKffa);
               for inp=1:np
                   DKffc{inp}=[DKffa{inp} DKdf{inp}';DKdf{inp} DKdd{inp}];
+                  DKffc2{inp}=[DKffa{inp} DKdf2{inp}(gp.deriv_i(:),:)';DKdf2{inp}(gp.deriv_i(:),:) DKdd2{inp}(gp.deriv_i(:),:)];
               end
-              
+              DKffc = DKffc2;
 %             end
           end
         end
@@ -365,7 +363,8 @@ switch gp.type
       if ~isempty(gprior_lik)
         DCff = gp.lik.fh.cfg(gp.lik, x);
         if isfield(gp, 'lik_mono') 
-          DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(size(gp.xv,1)*length(nvd),1)]);
+          %DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(size(gp.xv,1)*length(nvd),1)]);
+          DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(sum(sum(gp.deriv_I)))]);
         end
         for i2 = 1:length(DCff)
           i1 = i1+1;

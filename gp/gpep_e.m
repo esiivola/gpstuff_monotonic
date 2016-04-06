@@ -567,18 +567,19 @@ end
             
             % Monotonicity, get the virtual observations
             if isfield(gp, 'lik_mono')
-              x2=x;
-              y2=y;
-              x=gp.xv;
-              if isfield(gp, 'bc')
-                y = gp.yv;
-                y = y(:);
-              else
-                %y=gp.yv.*ones(size(x,1).*length(gp.nvd),1);
-                yv=round(gp.nvd./abs(gp.nvd));
-                y=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
-                y=y(:);
-              end
+              x2 = x;
+              y2 = y;
+              x = gp.deriv_x_vals;
+              y = gp.deriv_y_vals(gp.deriv_i);
+%               if isfield(gp, 'bc')
+%                 y = gp.yv;
+%                 y = y(:);
+%               else
+%                 %y=gp.yv.*ones(size(x,1).*length(gp.nvd),1);
+%                 yv=round(gp.nvd./abs(gp.nvd));
+%                 y=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
+%                 y=y(:);
+%               end
             end
             % The parameters or data have changed since
             % the last call for gpep_e. In this case we need to

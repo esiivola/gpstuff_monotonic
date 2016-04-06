@@ -56,7 +56,6 @@ ub=10;    % upper bound of the input space
 rng(3)
 x = 10*rand;
 y = fx(x);
-
 figure, % figure for visualization
 i1 = 1;
 maxiter = 15;

@@ -32,6 +32,7 @@ function [e, g] = gp_eg(w, gp, x, y, varargin)
 % License.txt, included with the software, for details.
 
 % Single function for some optimization routines, no need for mydeal...
+
 e=gp_e(w, gp, x, y, varargin{:});
 if nargout>1
   if isnan(e)

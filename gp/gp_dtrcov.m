@@ -27,16 +27,8 @@ function [K, C] = gp_dtrcov(gp, x1, x2, predcf)
 if (isfield(gp,'derivobs') && gp.derivobs)
   ncf=length(gp.cf);
   [n,m]=size(x2);
-  if isfield(gp, 'nvi') % Specific points are assumed important
-    is = gp.nvi;
-    isda = abs(gp.nvi);
-    isn = n*(isda-1) + is; %contains indices that we want from the derivative matrices
-  elseif isfield(gp, 'nvd')  & (size(x2) == size(gp.xv)) % Only defined dimensions are assumed monotonic
-     % Only specific dimensions
-    is = repmat(1:n,1, length(gp.nvd));
-    isd = repmat(abs(gp.nvd), n, 1);
-    isda = isd(:)';
-    isn = n*(isda-1) + is;
+  if isfield(gp, 'nvi') | (isfield(gp, 'nvd')  & (size(x2) == size(gp.deriv_x_vals)))
+    isn = gp.deriv_i(:);
   else %% All dimensions are assumed monoptonic
     is = repmat(1:n,1, m);
     isd = repmat(1:m, n, 1);

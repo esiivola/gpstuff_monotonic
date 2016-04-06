@@ -711,9 +711,11 @@ end
 gp = gp_unpak(gp, w);
 if ~isfield(gp.lik, 'nondiagW') || ismember(gp.lik.type, {'LGP' 'LGPC'}) 
   if isfield(gp, 'lik_mono')
-    xv=gp.xv;
-    yv=round(gp.nvd./abs(gp.nvd));
-    yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
+%     xv=gp.xv;
+%     yv=round(gp.nvd./abs(gp.nvd));
+%     yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
+    xv = gp.deriv_x_vals;
+    yv = gp.deriv_y_vals(gp.deriv_i);
     [K,C] = gp_dtrcov(gp, xx, gp.xv);
     cc=C(size(xx,1)+1:end,size(xx,1)+1:end);
     cy=C(size(xx,1)+1:end,1:size(xx,1));
@@ -780,7 +782,7 @@ if tr
   % return treshold
   if isfield(gp, 'lik_mono')
     if isequal(gp.lik.type, 'Gaussian')
-      y = log(rand(1)) + gp.lik_mono.fh.ll(gp.lik_mono, yv(:), f, z) + mnorm_lpdf (g', 0, C + S) + lp;
+      y = log(rand(1)) + gp.lik_mono.fh.ll(gp.lik_mono, yv, f, z) + mnorm_lpdf (g', 0, C + S) + lp;
     else
       
     end
@@ -791,7 +793,7 @@ else
   % return comparison value with proposed parameters
   if isfield(gp, 'lik_mono')
     if isequal(gp.lik.type, 'Gaussian')
-      y = gp.lik_mono.fh.ll(gp.lik_mono, yv(:), f_new, z) + mnorm_lpdf (g', 0, C + S) + lp;
+      y = gp.lik_mono.fh.ll(gp.lik_mono, yv, f_new, z) + mnorm_lpdf (g', 0, C + S) + lp;
     else
       
     end

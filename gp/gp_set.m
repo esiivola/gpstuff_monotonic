@@ -195,6 +195,7 @@ function gp = gp_set(varargin)
 % Copyright (c) 2006-2010 Jarno Vanhatalo
 % Copyright (c) 2010-2011 Aki Vehtari
 % Copyright (c) 2014 Arno Solin and Jukka Koskenranta
+% Copyright (c) 2016 Eero Siivola
   
 % This software is distributed under the GNU General Public 
 % License (version 3 or later); please refer to the file 
@@ -220,6 +221,7 @@ function gp = gp_set(varargin)
   ip.addParamValue('comp_cf', [], @(x) iscell(x))    
   ip.addParamValue('derivobs','off', @(x) islogical(x) || isscalar(x) || ...
                    (ischar(x) && ismember(x,{'on' 'off'})));
+
   ip.addParamValue('savememory','off', @(x) islogical(x) || isscalar(x) || ...
                    (ischar(x) && ismember(x,{'on' 'off'})));
 %   ip.addParamValue('optim_method', [], @(x) isreal(x) && (x==1 || x==2) &&  ...

@@ -123,9 +123,11 @@ function [record, gp, opt] = gp_mc(gp, x, y, varargin)
 %   end
   
   if isfield(gp, 'lik_mono')
-    xv=gp.xv;
-    yv=round(gp.nvd./abs(gp.nvd));
-    yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
+    %xv=gp.xv;
+    %yv=round(gp.nvd./abs(gp.nvd));
+    %yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
+    xv = gp.deriv_x_vals;
+    yv = gp.deriv_y_vals(gp.deriv_i);
   end
   % Default samplers and some checking
   if isfield(gp,'latent_method') && isequal(gp.latent_method,'MCMC')
@@ -629,11 +631,11 @@ function record = recappend(record)
       % Monotonic GP
       if isequal(gp.lik.type, 'Gaussian')
         [record.e(ri,:),record.edata(ri,:),record.eprior(ri,:)] = gp_e(gp_pak(gp), gp, x, [y; gp.latentValues]);
-        elik = gp.lik_mono.fh.ll(gp.lik_mono, yv(:), gp.latentValues, z);
+        elik = gp.lik_mono.fh.ll(gp.lik_mono, yv, gp.latentValues, z);
       else
         [record.e(ri,:),record.edata(ri,:),record.eprior(ri,:)] = gp_e(gp_pak(gp), gp, [x], gp.latentValues);
         elik = gp.lik.fh.ll(gp.lik, y, gp.latentValues(1:size(x,1)), z);
-        elik = elik + gp.lik_mono.fh.ll(gp.lik_mono, yv(:), gp.latentValues(size(x,1)+1:end), z);
+        elik = elik + gp.lik_mono.fh.ll(gp.lik_mono, yv, gp.latentValues(size(x,1)+1:end), z);
       end
     else
       elik = gp.lik.fh.ll(gp.lik, y, gp.latentValues, z);

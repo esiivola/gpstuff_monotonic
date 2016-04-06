@@ -137,17 +137,18 @@ function [e, edata, eprior, param] = gpsvi_e(w, gp, varargin)
 %         inds=gp.vind;        
 %         gp.xv=x(inds==2);
 %         x=x(inds==1);
-        yv=round(gp.nvd./abs(gp.nvd));
-        yv=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
-        yv=yv(:);
+%         yv=round(gp.nvd./abs(gp.nvd));
+%         yv=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
+%         yv=yv(:);
+        yv = gp.deriv_y_vals(gp.deriv_i);
         Kv_ff = gp_trvar(rmfield(gp, 'derivobs'), x);
         % New function maybe?
-        kd = diag(gp_dtrcov(gp,gp.xv,gp.xv));
-        kd(1:size(gp.xv,1))=[];
+        kd = diag(gp_dtrcov(gp,gp.deriv_x_vals, gp.deriv_x_vals));%kd = diag(gp_dtrcov(gp,gp.xv,gp.xv));
+        kd(1:size(gp.deriv_x_vals,1))=[]; %kd(1:size(gp.xv,1))=[];
         Kv_ff = [Kv_ff; kd];
         % Compute covariance matrix between f(u) and [f(x) df(xv)/dx_1,
         % ...]
-        K_fu=gp_dcov2(gp,u,[],x,gp.xv)';
+        K_fu=gp_dcov2(gp,u,[],x, gp.deriv_x_vals)';%K_fu=gp_dcov2(gp,u,[],x,gp.xv)';
         K_uu=gp_trcov(rmfield(gp, 'derivobs'),u);
         beta=gp.lik_mono.sigma2;
       else

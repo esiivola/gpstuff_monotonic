@@ -78,12 +78,13 @@ S=gp.S;
 
 if isfield(gp, 'lik_mono') && isfield(gp, 'derivobs') && gp.derivobs==1
   % Monotonicty with SVI-GP
-  yv=round(gp.nvd./abs(gp.nvd));
-  yv=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
-  yv=yv(:);
+%   yv=round(gp.nvd./abs(gp.nvd));
+%   yv=bsxfun(@times, yv, ones(size(gp.xv,1),length(gp.nvd)));
+%   yv=yv(:);
+  yv = gp.deriv_y_vals(gp.deriv_i);
   Kv_ff = gp_trvar(rmfield(gp, 'derivobs'), x);
   % New function maybe?
-  xv=gp.xv;
+  xv = gp.deriv_x_vals; %xv=gp.xv;
   kd = diag(gp_dtrcov(gp,xv,xv));
   kd(1:size(xv,1))=[];      
   Kv_ff = [Kv_ff; kd];

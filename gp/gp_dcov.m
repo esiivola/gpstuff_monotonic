@@ -22,7 +22,8 @@ function [C, Cinv] = gp_dcov(gp, x1, x2, predcf)
 
 % Split the training data for normal latent input and gradient inputs
 x12=x1;
-x11=gp.xv;
+x11= gp.deriv_x_vals; %gp.xv;
+
 
 % Derivative observations
 [n,m]=size(x1);
@@ -30,14 +31,8 @@ x11=gp.xv;
 ncf=length(gp.cf);
 
 [nt,mt]=size(x11);
-if isfield(gp, 'nvi')
-  isn = gp.nvi;
-elseif isfield(gp, 'nvd')
-   % Only specific dimensions
-  is = repmat(1:nt,1, length(gp.nvd));
-  isd = repmat(abs(gp.nvd), nt, 1);
-  isda = isd(:)';
-  isn = nt*(isda-1) + is;
+if isfield(gp, 'nvi') || isfield(gp, 'nvd')
+  isn = gp.deriv_i(:);
 else
   is = repmat(1:nt,1, m);
   isd = repmat(1:mt, nt, 1);

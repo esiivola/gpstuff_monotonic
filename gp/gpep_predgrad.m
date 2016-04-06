@@ -140,9 +140,10 @@ function [Eft, Varft, lpyt, Eyt, Varyt] = gpep_predgrad(gp, x, y, varargin)
         
         x2=x;
         y2=y;
-        x=gp.xv;
-        yv=round(gp.nvd./abs(gp.nvd));
-        y=bsxfun(@times,yv,ones(size(gp.xv,1),length(gp.nvd)));
+        %x=gp.xv;
+        %yv=round(gp.nvd./abs(gp.nvd));
+        %y=bsxfun(@times,yv,ones(size(gp.xv,1),length(gp.nvd)));
+        x=gp.deriv_x_vals;
         [K,C]=gp_dtrcov(gp,x2,x);
         kstarstar = diag(gp_dtrcov(gp, xt, xt, predcf));
         kstarstar(1:size(xt,1))=[];

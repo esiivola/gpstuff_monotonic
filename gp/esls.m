@@ -51,10 +51,12 @@ end
 
 if ~isfield(gp.lik, 'nondiagW') || ismember(gp.lik.type, {'LGP' 'LGPC'});
   if isfield(gp, 'lik_mono')
-    xv=gp.xv;
-    yv=round(gp.nvd./abs(gp.nvd));
-    yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
-    [K,C] = gp_dtrcov(gp, x, gp.xv);
+%     xv=gp.xv;
+%     yv=round(gp.nvd./abs(gp.nvd));
+%     yv=bsxfun(@times,yv,ones(size(xv,1),length(gp.nvd)));
+    xv = gp.deriv_x_vals; %% NOT TESTED
+    yv = gp.deriv_y_vals;
+    [K,C] = gp_dtrcov(gp, x, xv);
     if isequal(gp.lik.type, 'Gaussian')
       cc=C(size(x,1)+1:end,size(x,1)+1:end);
       cy=C(size(x,1)+1:end,1:size(x,1));

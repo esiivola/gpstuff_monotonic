@@ -64,6 +64,11 @@ if isfield(gp,'latent_method') && ~strcmp(gp.latent_method,'MCMC')
   return
 end
 
+% If latent method is not in use, then derivatives   
+if isfield(gp, 'derivobs') && gp.derivobs
+  y = [y(1:size(x,1)); gp.deriv_y_vals(gp.deriv_i)];
+end
+
 ip=inputParser;
 ip.FunctionName = 'GP_E';
 ip.addRequired('w', @(x) isempty(x) || isvector(x) && isreal(x));
@@ -125,7 +130,7 @@ switch gp.type
   % ============================================================
   case 'FULL'   % A full GP
     if isfield(gp, 'lik_mono')
-      [K,C] = gp_dtrcov(gp, x, gp.xv);      
+      [K,C] = gp_dtrcov(gp, x, gp.deriv_x_vals); %gp_dtrcov(gp, x, gp.xv);      
       if isequal(gp.lik.type, 'Gaussian')
         % Condition the derivatives on the observations
         cc=C(size(x,1)+1:end,size(x,1)+1:end);

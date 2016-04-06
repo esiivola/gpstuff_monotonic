@@ -42,6 +42,7 @@ gp2=gp;
 opt=optimset('TolX',1e-4,'TolFun',1e-4,'Display','iter');
 gp=gp_monotonic(gp,x,y,'nv', 35, 'nvd', [-1 -2], 'optimize', 'on', ...
   'opt', opt, 'optimf', @fminlbfgs);
+
 % Optimize the normal GP for comparison
 gp2=gp_optim(gp2,x,y,'opt',opt, 'optimf', @fminlbfgs);
 

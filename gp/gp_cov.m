@@ -12,6 +12,7 @@ function [C, Cinv] = gp_cov(gp, x1, x2, predcf)
 %
 % Copyright (c) 2007-2010, 2016 Jarno Vanhatalo
 % Copyright (c) 2010 Tuomas Nikoskinen
+% Copyright (c) 2016 Eero Siivola
 
 % This software is distributed under the GNU General Public
 % License (version 3 or later); please refer to the file
@@ -25,6 +26,7 @@ ncf = length(gp.cf);
 [n2,m2]=size(x2);
 
 C = sparse(0);
+C2 = sparse(0);
 if nargin < 4 || isempty(predcf)
     predcf = 1:ncf;
 end
@@ -36,40 +38,74 @@ for i=1:length(predcf)
         end
     end
     % derivative observations in use
-    if isfield(gp,'derivobs') && gp.derivobs
+    if isfield(gp,'derivobs') && gp.derivobs % x1=observations used for training, x2=testpoints
         if m==1
             Kff = gpcf.fh.cov(gpcf, x1, x2);
             Kdf = gpcf.fh.ginput4(gpcf, x1, x2);
             Kdf=Kdf{1};
-            Kfd = gpcf.fh.ginput4(gpcf, x2, x1); 
+            Kdf2 = gpcf.fh.ginput4(gpcf, gp.deriv_x_vals, x2);
+            Kdf2 = Kdf2{1}(gp.deriv_i(:),:);
+            Kfd = gpcf.fh.ginput4(gpcf, x2, x1);
             Kfd=Kfd{1}';     % Notice, Kfd is calculated with lower left 
-                             % parts. Hence, we need a transpose             
+                             % parts. Hence, we need a transpose
+            
+            Kfd2 = gpcf.fh.ginput4(gpcf,x2, x1);
+            Kfd2 = Kfd2{1}';
             Kdd = gpcf.fh.ginput2(gpcf, x1, x2);
             
-            C = C + [Kff Kfd; Kdf Kdd{1}];
+            Kdd2 = gpcf.fh.ginput2(gpcf, gp.deriv_x_vals, x2);
+            Kdd2 = Kdd2{1}(gp.deriv_i(:), :);
             
-        else % Input dimension is >1            
+            C = C + [Kff Kfd; Kdf Kdd{1}];
+            C2 = C2 + [Kff Kfd2; Kdf2 Kdd2];
+            
+            C = C2;
+            
+        else % Input dimension is >1     %%% NOT TESTED YET!        
             % the block of covariance matrix
             Kff = gpcf.fh.cov(gpcf, x1, x2);
             % the blocks on the left side, below Kff 
             Kdf = gpcf.fh.ginput4(gpcf, x1, x2);
             Kdf=cat(1,Kdf{1:m});
+            Kdf2 = gpcf.fh.ginput4(gpcf, gp.deriv_x_vals, x2);
+            for i=1:m;
+                Kdf2{i} = Kdf2{i}(gp.deriv_i(:,i), :);
+            end
+            Kdf2 = cat(1,Kdf2{:});
+            
             % the blocks on the right side, next to Kff 
             Kfd = gpcf.fh.ginput4(gpcf, x2, x1);
             Kfd=cat(1,Kfd{1:m})';   % Notice, Kfd is calculated with lower 
-                                    % left parts. Hence, we need a transpose 
+                                    % left parts. Hence, we need a transpose
+            Kfd2 = gpcf.fh.ginput4(gpcf, x2, gp.deriv_x_vals);
+            for i=1:m;
+                Kfd2{i} = Kfd2{i}(:, gp.deriv_i(:,i));
+            end
+            Kfd2 = cat(1,Kdf2{:})';
+            
             % the diagonal blocks of double derivatives
             D = gpcf.fh.ginput2(gpcf, x1, x2);
+            Kdd=blkdiag(D{1:m});
+            D2  = gpcf.fh.ginput2(gpcf, gp.deriv_x_vals, x2);
+            ns = [1:m];
+            for i= 1:m % reduce the size of the matrices to correspond correct size of the derivative observations
+                D2{i} = D2{i}(gp.deriv_i(:,i), :);
+                ns(i) = sum(gp.deriv_i(:,i));
+            end
+            Kdd2 = blkdiag(D2{:});
+            
             % the off diagonal blocks of double derivatives on the
             % upper right corner. See e.g. gpcf_squared -> ginput3
             Kdf12 = gpcf.fh.ginput3(gpcf, x1 ,x2);
             Kdf21 = gpcf.fh.ginput3(gpcf, x2, x1);
+            Kdf122 = gpcf.fh.ginput3(gpcf, gp.deriv_x_vals ,x2);
+            Kdf212 = gpcf.fh.ginput3(gpcf, x2, gp.deriv_x_vals);
             
             % Now build up Kdd m*n x m*n2 matrix, which contains all the
             % both partial derivative" -matrices
             
             % Add the diagonal matrices
-            Kdd=blkdiag(D{1:m});
+
             % Add the non-diagonal matrices to Kdd
             ii3=0;
             for j=0:m-2
@@ -81,10 +117,28 @@ for i=1:length(predcf)
                     Kdd(j*n+1:j*n+n,i*n2+1:(i+1)*n2) = Kdf12{ii3};    % up right
                 end
             end
+            %NEW
+            ii3=0;
+            csj=0;
+            for j=0:m-2
+                csi = csj;
+                csj = csj + ns(j+1);
+                for i=1+j:m-1
+                    ii3=ii3+1;
+                    Kdd2(csi+1:csi+ns(i), j*n2+1:j*n2+n2) = Kdf212{ii3}';  % down left 
+                    % Notice, Kdf12 is calculated with upper right parts.
+                    % Hence we need transpose above
+                    Kdd2(j*n+1:j*n+n, csi+1:csi+ns(i)) = Kdf122{ii3};    % up right
+                    csi = csi + ns(i);
+                end
+            end
             
             % Gather all the matrices into one final matrix K which is the
             % training covariance matrix
             C = C + [Kff Kfd; Kdf Kdd];
+            C2 = C2 + [Kff2 Kfd2; Kdf2 Kdd2];
+            
+            C=C2;
         end
     else
         C = C + gpcf.fh.cov(gpcf, x1, x2);

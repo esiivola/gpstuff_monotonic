@@ -53,6 +53,7 @@ function gp = gp_monotonic(gp, varargin)
 %
 % Copyright (c) 2014 Ville Tolvanen
 % Copyright (c) 2015 Aki Vehtari
+% Copyright (c) 2016 Eero Siivola
 
 % This software is distributed under the GNU General Public
 % License (version 3 or later); please refer to the file
@@ -108,12 +109,15 @@ else
     end
   end
 end
+indst = zeros(1, size(x,2));
+indst(abs(nvd)) = nvd./abs(nvd);
 nvd=length(gp.nvd);
-if ~isfield(gp, 'xv')
+xv = [];
+if ~isfield(gp, 'deriv_x_vals')
   switch init
     case 'sample'
       rpii=randperm(size(x,1));
-      gp.xv=x(rpii(1:nv),:);
+      xv=x(rpii(1:nv),:); %gp.xv=x(rpii(1:nv),:);
     case 'kmeans'
       S=warning('off','stats:kmeans:EmptyCluster');
       [tmp,xv]=kmeans(x, nv, 'Start','uniform', ...
@@ -121,7 +125,8 @@ if ~isfield(gp, 'xv')
       warning(S);
   end
 end
-xv=gp.xv;
+gp = gp_der(gp, xv, indst, logical(abs(indst)));
+%xv=gp.xv;
 if isempty(opt) || ~isfield(opt, 'TolX')
   % No options structure given or not a proper options structure
   opt=optimset('TolX',1e-4,'TolFun',1e-4,'Display','iter');
@@ -159,7 +164,8 @@ while any(any(bsxfun(@times,Ef, yv)<-nu))
   clear ind;
   fprintf('Added %d virtual observations.\n', length(inds));
   xv=[xv;x(inds,:)];
-  gp.xv=xv;
+  %gp.xv=xv;
+  gp = gp_der(gp, xv, indst, logical(abs(indst)));
   gpep_e('clearcache',gp);
   if isequal(optimize, 'on')
     gp=gp_optim(gp,x,y,'opt',opt,'z',z, 'optimf', optimf);

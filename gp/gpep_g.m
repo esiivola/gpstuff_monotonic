@@ -560,7 +560,7 @@ function [g, gdata, gprior] = gpep_g(w, gp, x, y, varargin)
         L=p.L;
         if isfield(gp, 'lik_mono')
           x2=x;
-          x=gp.xv;
+          x=gp.deriv_x_vals; %gp.xv;
           [K,C]=gp_dtrcov(gp,x2,x);
           n=size(K,1);
           C=K;
@@ -639,21 +639,15 @@ function [g, gdata, gprior] = gpep_g(w, gp, x, y, varargin)
               if ~isempty(DKffa)
                 DKdf = gpcf.fh.cfdg(gpcf, x, x2);
                 DKdd = gpcf.fh.cfdg2(gpcf, x);
-                if isfield(gp, 'nvi')
-                    inds = gp.nvi;
-                elseif isfield(gp, 'nvd')
-                    % Select monotonic dimensions
-                    inds=[];
-                    nvd=abs(gp.nvd);
-                    if isfield(gpcf,'selectedVariables')
-                        [~,nvd]=ismember(nvd,gpcf.selectedVariables);
-                        nvd=nvd(logical(nvd));
-                    end
+                inds = gp.deriv_i(:);
+                if isfield(gpcf,'selectedVariables') % Might be useless bloc
+                    [~,nvd]=ismember(nvd,gpcf.selectedVariables);
+                    nvd=nvd(logical(nvd));
                     for idd=1:length(nvd)
-                      inds=[inds size(x,1)*(nvd(idd)-1)+1:size(x,1)*nvd(idd)];
+                        inds=[inds size(x,1)*(nvd(idd)-1)+1:size(x,1)*nvd(idd)];
                     end
                 end
-                
+
                 for ijj=1:length(DKffa)
                   DKdf{ijj}=DKdf{ijj}(inds,:);
                   DKdd{ijj}=DKdd{ijj}(inds,inds);
