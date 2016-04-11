@@ -133,10 +133,10 @@ switch gp.type
                     %NEW
                     ii3=0;
                     csj=0;
-                    for j=0:m2-2
+                    for j=0:m-2
                         csi = csj;
                         csj = csj + ns(j+1);
-                        for i=1+j:m2-1
+                        for i=1+j:m-1
                             ii3=ii3+1;
                             Kdd2(csi+1:csi+ns(i),csj+1:csj+ns(j+2)) = Kdf21{ii3}';
                             Kdd2(csj+1:csj+ns(j+2),csi+1:csi+ns(i)) = Kdf21{ii3};

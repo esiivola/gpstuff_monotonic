@@ -268,7 +268,8 @@ switch gp.type
           K(length(xtind)+1:end,:)=[];
           K=K';
         else
-          K=gp_cov(gp,x,xt(xtind,:),predcf);
+          %K=gp_cov(gp,x,xt(xtind,:),predcf);
+          K=gp_cov(gp, xt(xtind,:),  x, predcf)';
         end
         if isfield(gp,'derivobs') && gp.derivobs==1 && ~isfield(gp,'lik_mono')
           for k2=1:size(x,2) %k2=2:nderobs
