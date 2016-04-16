@@ -64,8 +64,8 @@ for i=1:length(predcf)
         if isfield(gp,'derivobs') && gp.derivobs
             % derivative observations in use
             K = K + [gpcf.fh.trvar(gpcf, x1) ; gpcf.fh.ginput2(gpcf, x1, x1, 'takeOnlyDiag')];
-            K2 = K2 + [gpcf.fh.trvar(gpcf, x1) ; gpcf.fh.ginput2(gpcf, x1, gp.deriv_x_vals, 'takeOnlyDiag')];
-            K=K2;
+            %K2 = K2 + [gpcf.fh.trvar(gpcf, x1) ; gpcf.fh.ginput2(gpcf, gp.deriv_x_vals, gp.deriv_x_vals, 'takeOnlyDiag')];
+            %K=K2;
         else
             % no observations
             K = K + gpcf.fh.trvar(gpcf, x1);

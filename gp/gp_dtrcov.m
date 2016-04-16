@@ -27,15 +27,15 @@ function [K, C] = gp_dtrcov(gp, x1, x2, predcf)
 if (isfield(gp,'derivobs') && gp.derivobs)
   ncf=length(gp.cf);
   [n,m]=size(x2);
-  if isfield(gp, 'nvi') | (isfield(gp, 'nvd')  & (size(x2) == size(gp.deriv_x_vals)))
-    isn = gp.deriv_i(:);
-  else %% All dimensions are assumed monoptonic
+  if sum(size(x2) == size(gp.deriv_x_vals))<2
     is = repmat(1:n,1, m);
     isd = repmat(1:m, n, 1);
     isda = isd(:)';
     isn = n*(isda-1) + is;
+  else
+    isn = gp.deriv_i(:);
   end
-  K=zeros(length(x1)+length(isn));
+  K=zeros(length(x1)+sum(logical(isn)));
   % Loop over covariance functions
   for i=1:ncf
     % Derivative observations
@@ -45,11 +45,10 @@ if (isfield(gp,'derivobs') && gp.derivobs)
       Gset = gpcf.fh.ginput4(gpcf, x2,x1);
       D = gpcf.fh.ginput2(gpcf, x2, x2);
       Kdf=Gset{1};
-      Kfd = Kdf;
       Kdd=D{1};
       
       % Add all the matrices into a one K matrix
-      K = K+[Kff Kfd'; Kfd Kdd];
+      K = K+[Kff Kdf'; Kdf Kdd];
       [a b] = size(K);
       
       % MULTIDIMENSIONAL input dim >1
@@ -74,7 +73,7 @@ if (isfield(gp,'derivobs') && gp.derivobs)
       
       % Gather non-diagonal matrices to Kddnodi
       if m==2
-        Kddnodi=[zeros(n,n) Kdf2{1};Kdf2{1} zeros(n,n)];
+        Kddnodi=[zeros(n,n) Kdf2{1};Kdf2{1}' zeros(n,n)];
       else
         t1=1;
         Kddnodi=zeros(m*n,m*n);
@@ -92,11 +91,7 @@ if (isfield(gp,'derivobs') && gp.derivobs)
       % Sum the diag + no diag matrices
       Kdd=Kdd+Kddnodi;
       
-      if isfield(gp, 'nvd')
-        % Collect the monotonic dimensions
-        Kdd = Kdd(isn, isn);
-
-      end
+      Kdd = Kdd(isn, isn);
       
       % Gather all the matrices into one final matrix K which is the
       % training covariance matrix

@@ -54,20 +54,21 @@ for i=1:length(predcf)
                              % parts. Hence, we need a transpose
             
             Kfd2 = gpcf.fh.ginput4(gpcf, gp.deriv_x_vals, x1);
-            Kfd2=Kfd2{1}(gp.deriv_i, :)';
+            Kfd2=Kfd2{1}';
             
             Kdd = gpcf.fh.ginput2(gpcf, x1, x2);
             
             Kdd2 = gpcf.fh.ginput2(gpcf, x1, gp.deriv_x_vals);
-            Kdd2 = Kdd2{1}(:, gp.deriv_i(:));
+            Kdd2 = Kdd2{1};
             
-            C = C + [Kff Kfd; Kdf Kdd{1}];
-            C2 = C2 + [Kff Kfd2; Kdf2 Kdd2];
+            %C = C + [Kff Kfd; Kdf Kdd{1}];
+            C2 = C2 + [Kff Kfd2(:,gp.deriv_i(:)); Kdf2 Kdd2(:, gp.deriv_i(:))];
             
             C = C2;
             
         else % Input dimension is >1     %%% NOT TESTED YET!        
             % the block of covariance matrix
+            [n3,~] = size(gp.deriv_x_vals);
             Kff = gpcf.fh.cov(gpcf, x1, x2);
             % the blocks on the left side, below Kff 
             Kdf = gpcf.fh.ginput4(gpcf, x1, x2);
@@ -80,20 +81,12 @@ for i=1:length(predcf)
             Kfd=cat(1,Kfd{1:m})';   % Notice, Kfd is calculated with lower 
                                     % left parts. Hence, we need a transpose
             Kfd2 = gpcf.fh.ginput4(gpcf, gp.deriv_x_vals, x1);
-            for i=1:m;
-                Kfd2{i} = Kfd2{i}(gp.deriv_i(:,i),:);
-            end
-            Kfd2 = cat(1,Kdf2{:})';
+            Kfd2 = cat(1,Kfd2{:})';       
             
             % the diagonal blocks of double derivatives
             D = gpcf.fh.ginput2(gpcf, x1, x2);
             Kdd=blkdiag(D{1:m});
             D2  = gpcf.fh.ginput2(gpcf,x1, gp.deriv_x_vals);
-            ns = [1:m];
-            for i= 1:m % reduce the size of the matrices to correspond correct size of the derivative observations
-                D2{i} = D2{i}(:, gp.deriv_i(:,i));
-                ns(i) = sum(gp.deriv_i(:,i));
-            end
             Kdd2 = blkdiag(D2{:});
             
             % the off diagonal blocks of double derivatives on the
@@ -121,24 +114,20 @@ for i=1:length(predcf)
             end
             %NEW
             ii3=0;
-            csj=0;
             for j=0:m-2
-                csi = csj;
-                csj = csj + ns(j+1);
                 for i=1+j:m-1
                     ii3=ii3+1;
-                    Kdd2(j*n2+1:j*n2+n2, csi+1:csi+ns(i)) = Kdf212{ii3}';  % down left 
+                    Kdd(i*n+1:(i+1)*n,j*n3+1:j*n3+n3) = Kdf212{ii3}';  % down left 
                     % Notice, Kdf12 is calculated with upper right parts.
                     % Hence we need transpose above
-                    Kdd2(csi+1:csi+ns(i), j*n+1:j*n+n) = Kdf122{ii3};    % up right
-                    csi = csi + ns(i);
+                    Kdd(i*n+1:(i+1)*n,j*n3+1:j*n3+n3) = Kdf122{ii3};   % up right
                 end
             end
             
             % Gather all the matrices into one final matrix K which is the
             % training covariance matrix
-            C = C + [Kff Kfd; Kdf Kdd];
-            C2 = C2 + [Kff2 Kfd2; Kdf2 Kdd2];
+            %C = C + [Kff Kfd; Kdf Kdd];
+            C2 = C2 + [Kff Kfd2(:, gp.deriv_i(:)); Kdf2 Kdd2(:, gp.deriv_i(:))];
             
             C=C2;
         end

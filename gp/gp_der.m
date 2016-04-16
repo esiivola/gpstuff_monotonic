@@ -24,8 +24,8 @@ deriv_x_vals = ip.Results.deriv_x_vals;
 [n,m] =  size(deriv_x_vals);
 
 if(n==0 || m==0)
-  print('error, x must be given');
-  return;
+  'error, x must be given'
+  return
 end
 
 
@@ -73,6 +73,6 @@ end
 y_unique(~i_unique)=0;
 gp.deriv_x_vals = x_unique;
 gp.deriv_y_vals = y_unique;
-gp.deriv_i = i_unique;
+gp.deriv_i = logical(i_unique);
 gp.derivobs = 1;
 end

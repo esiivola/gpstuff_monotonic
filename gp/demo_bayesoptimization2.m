@@ -60,6 +60,7 @@ rng(3)
 x = 10*rand;
 y = fx(x);
 yg = gx(x);
+gp = gp_der(gp, x, yg, logical(yg));
 
 
 % cfc = gpcf_constant('constSigma2',10,'constSigma2_prior', prior_fixed);
@@ -114,6 +115,7 @@ while i1 < maxiter && improv>1e-6
     y(end+1) = fx(x(end));  % calculate the function value at query point
     yg(end+1) = gx(x(end));  % calculate the function value at query point
     x=x(:);y=y(:);yg=yg(:);
+    gp = gp_der(gp, x, yg, logical(yg));
 
     % visualize
     clf
@@ -188,7 +190,7 @@ y = fx(x);
 for i1=1:size(x,1)
     yg(i1,:)=dfx(x(i1,:));
 end
-
+gp = gp_der(gp, x, yg, logical(yg));
 
 figure, % figure for visualization
 i1 = 1;
@@ -241,7 +243,7 @@ while i1 < maxiter && improv>1e-6
     x(end+1,:) = x_new;
     y(end+1,:) = fx(x(end,:));     % calculate the function value at query point
     yg(end+1,:)=dfx(x(end,:));
-
+    gp = gp_der(gp, x, yg, logical(yg));
     % visualize
     clf
     % Plot the objective function

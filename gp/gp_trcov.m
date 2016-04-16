@@ -50,6 +50,7 @@ switch gp.type
         % Evaluate the covariance without noise
         K = sparse(0);
         K2 = sparse(0);
+        K3= sparse(0);
         if isfield(gp,'derivobs') && gp.derivobs  % derivative observations in use
             if any(strcmp(gp.type,{'FIC' 'PIC' 'PIC_BLOCK' 'CS+FIC' 'VAR' 'DTC' 'SOR'}))
                 error('derivative observations have not been implemented for sparse GPs')
@@ -83,72 +84,42 @@ switch gp.type
                     Kdd2 = D2{1};
                     
                     % Add all the matrices into a one K matrix
-                    K = K + [Kff Kfd; Kdf Kdd];
-                    K2 = K2 + [Kff Kdf2'; Kdf2 Kdd2];
+                    %K = K + [Kff Kfd; Kdf Kdd];
+                    K2 = K2 + [Kff Kdf2(gp.deriv_i(:),:)'; Kdf2(gp.deriv_i(:),:) Kdd2(gp.deriv_i(:),gp.deriv_i(:))];
                     K=K2;
-                else                                                %UNTESTED 
+                else
+                    [n2, ~] = size(gp.deriv_x_vals);
                     % the block of covariance matrix
                     Kff = gpcf.fh.trcov(gpcf, x1);
                     % the blocks on the left side, below Kff 
-                    Kdf= gpcf.fh.ginput4(gpcf, x1);
-                    Kdf=cat(1,Kdf{1:m});
-                    Kdf12= gpcf.fh.ginput4(gpcf, x1, gp.deriv_x_vals);
-                    for i= 1:m % reduce the size of the matrices to correspond correct size of the derivative observations
-                        Kdf12{i} = Kdf12{i}(:, gp.deriv_i(:,i));
-                    end
-                    Kdf12 = cat(1,Kdf12{:});
-                    Kfd=Kdf';
+                    Kdf= gpcf.fh.ginput4(gpcf, gp.deriv_x_vals, x1);
+                    Kdf = cat(1,Kdf{:});
+                    
                     % the diagonal blocks of double derivatives
-                    D = gpcf.fh.ginput2(gpcf, x1, x1);
-                    D2 = gpcf.fh.ginput2(gpcf, gp.deriv_x_vals, gp.deriv_x_vals);
+                    D = gpcf.fh.ginput2(gpcf, gp.deriv_x_vals, gp.deriv_x_vals);
                     % the off diagonal blocks of double derivatives on the
                     % upper right corner. See e.g. gpcf_squared -> ginput3
-                    Kdf2 = gpcf.fh.ginput3(gpcf, x1 ,x1);
-                    Kdf21 = gpcf.fh.ginput3(gpcf, gp.deriv_x_vals , gp.deriv_x_vals);                     
+                    Kdf2 = gpcf.fh.ginput3(gpcf, gp.deriv_x_vals , gp.deriv_x_vals);                     
                     % Now build up Kdd m*n x m*n matrix, which contains all the
                     % both partial derivative" -matrices
                     
                     % Add the diagonal matrices
-                    Kdd=blkdiag(D{1:m});
                     
+                    Kdd = blkdiag(D{1:m});
                     
-
-                    ns = [1:m];
-                    for i= 1:m % reduce the size of the matrices to correspond correct size of the derivative observations
-                        D2{i} = D2{i}(gp.deriv_i(:,i), gp.deriv_i(:,i));
-                        ns(i) = sum(gp.deriv_i(:,i));
-                    end
-                    Kdd2 = blkdiag(D2{1:m});
-                    
-                    %OLD
                     % Add the non-diagonal matrices to Kdd
                     ii3=0;
                     for j=0:m-2
                         for i=1+j:m-1
                             ii3=ii3+1;
-                            Kdd(i*n+1:(i+1)*n,j*n+1:j*n+n) = Kdf2{ii3}';
-                            Kdd(j*n+1:j*n+n,i*n+1:(i+1)*n) = Kdf2{ii3};
+                            Kdd(i*n2+1:(i+1)*n2,j*n2+1:j*n2+n2) = Kdf2{ii3}';
+                            Kdd(j*n2+1:j*n2+n2,i*n2+1:(i+1)*n2) = Kdf2{ii3};
                         end
                     end
-                    %NEW
-                    ii3=0;
-                    csj=0;
-                    for j=0:m-2
-                        csi = csj;
-                        csj = csj + ns(j+1);
-                        for i=1+j:m-1
-                            ii3=ii3+1;
-                            Kdd2(csi+1:csi+ns(i),csj+1:csj+ns(j+2)) = Kdf21{ii3}';
-                            Kdd2(csj+1:csj+ns(j+2),csi+1:csi+ns(i)) = Kdf21{ii3};
-                            csi = csi + ns(i);
-                        end
-                    end
-                                        
+                                     
                     % Gather all the matrices into one final matrix K which is the
                     % training covariance matrix
-                    K = K +  [Kff Kfd; Kdf Kdd];
-                    K2 = K2 + [Kff2 Kdf12'; Kdf12 Kdd2];
-                    K=K2;
+                    K= K + [Kff Kdf(gp.deriv_i(:),:)'; Kdf(gp.deriv_i(:),:) Kdd(gp.deriv_i(:), gp.deriv_i(:))];
                 end
             else
                 % Regular GP without derivative observations

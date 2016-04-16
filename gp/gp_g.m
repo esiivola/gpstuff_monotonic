@@ -245,6 +245,7 @@ switch gp.type
             else
               DKffc = gpcf.fh.cfg(gpcf, x);
             end
+            DKffc2 = DKffc;
             np=length(DKffc);
           else
             % If savememory option is used, just get the number of
@@ -287,9 +288,11 @@ switch gp.type
               np=length(DKffa);
               for inp=1:np
                   DKffc{inp}=[DKffa{inp} DKdf{inp}';DKdf{inp} DKdd{inp}];
-                  DKffc2{inp}=[DKffa{inp} DKdf2{inp}(gp.deriv_i(:),:)';DKdf2{inp}(gp.deriv_i(:),:) DKdd2{inp}(gp.deriv_i(:),:)];
+                  DKffc2{inp}=[DKffa{inp} DKdf2{inp}(gp.deriv_i(:),:)';DKdf2{inp}(gp.deriv_i(:),:) DKdd2{inp}(gp.deriv_i(:),gp.deriv_i(:))];
               end
-              DKffc = DKffc2;
+              if(np>0)
+                DKffc = DKffc2;
+              end
 %             end
           end
         end
