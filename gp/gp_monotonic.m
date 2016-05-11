@@ -66,7 +66,7 @@ ip.addRequired('gp',@isstruct);
 ip.addOptional('x', [], @(x) isnumeric(x) && isreal(x) && all(isfinite(x(:))))
 ip.addOptional('y', [], @(x) isnumeric(x) && isreal(x) && all(isfinite(x(:))))
 ip.addParamValue('z', [], @(x) isnumeric(x) && isreal(x) && all(isfinite(x(:))))
-ip.addParamValue('nu', 1e-6, @(x) isreal(x) && isscalar(x) && (x>0))
+ip.addParamValue('nu', 1e6, @(x) isreal(x) && isscalar(x) && (x>0))
 ip.addParamValue('nv', [], @(x) isreal(x) && isscalar(x))
 ip.addParamValue('init', 'sample', @(x) ismember(x, {'sample', 'kmeans'}));
 ip.addParamValue('xv', [], @(x) isnumeric(x) && isreal(x) && all(isfinite(x(:))))
@@ -111,6 +111,7 @@ else
 end
 indst = zeros(1, size(x,2));
 indst(abs(nvd)) = nvd./abs(nvd);
+
 nvd=length(gp.nvd);
 xv = [];
 if ~isfield(gp, 'deriv_x_vals')

@@ -117,9 +117,9 @@ end
       return
     end
     if isempty(z)
-      datahash=hash_sha512([x y]);
+      datahash=hash_sha512([x(:); y(:)]);
     else
-      datahash=hash_sha512([x y z]);
+      datahash=hash_sha512([x(:); y(:); z(:)]);
     end
     
     if isfield(gp.lik,'nondiagW') % non-diagonal W
@@ -2046,7 +2046,7 @@ end
                 else
                   % Compute the prior covariance of f_joint (f
                   % and df/dx)
-                  [K,C] = gp_dtrcov(gp, x2, x);
+                  [K, C] = gp_dtrcov(gp, x2, x);
                   if isequal(gp.lik.type, 'Gaussian')
                     Cp=K;
                     C=K(size(x2,1)+1:end, size(x2,1)+1:end);

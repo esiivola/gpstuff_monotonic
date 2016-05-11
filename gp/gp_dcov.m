@@ -31,7 +31,8 @@ x11= gp.deriv_x_vals; %gp.xv;
 ncf=length(gp.cf);
 
 [nt,mt]=size(x11);
-if isfield(gp, 'nvi') || isfield(gp, 'nvd')
+%if isfield(gp, 'deriv_i') || isfield(gp, 'nvd')
+if (isfield(gp,'derivobs') && gp.derivobs)
   isn = gp.deriv_i(:);
 else
   is = repmat(1:nt,1, m);
@@ -65,7 +66,6 @@ for i1=1:ncf
     %Kfd=cat(2,Gset1{ii1});
     
     Kdf = cat(1,Gset1{1:m});
-    Kdf = Kdf(isn, :);
     
     %Kfd22=cat(2,Gset2{ii1});
     
@@ -89,8 +89,9 @@ for i1=1:ncf
         Kdd(j*n+1:j*n+n,i*n2+1:(i+1)*n2) = Kdf2{ii3};
       end
     end
-    if isfield(gp, 'nvd')
+    if (isfield(gp,'derivobs') && gp.derivobs)
       % Collect the correct gradient dimensions,
+      Kdf = Kdf(isn, :);
       Kdd = Kdd(isn, :);
     end
  

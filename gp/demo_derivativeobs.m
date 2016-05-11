@@ -107,7 +107,7 @@ disp('GP model with derivative obs')
 
 % Option derivobs set so that the derivatives are in use
 gp = gp_set('cf', gpcf, 'derivobs', 'on');
-gp = gp_der(gp, x([1  6]), dy([1 6]));
+gp = gp_der(gp, x, dy);
 % Set the options for the optimization
 opt=optimset('TolFun',1e-3,'TolX',1e-3,'DerivativeCheck','on');
 % Optimize with the scaled conjugate gradient method

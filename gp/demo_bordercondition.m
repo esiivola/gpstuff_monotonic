@@ -95,7 +95,9 @@ title('lin + sexp')
 subplot(2,2,4)
 opt=optimset('TolX',1e-1,'TolFun',1e-1,'Display','iter');
 gpbm=gpa;gpbm.xv=xn(2:2:end);
-gpbm=gp_monotonic(gpb,xn,y,'z',z,'nvd', 1, 'optimize', 'on', ...
+%gpbm=gp_monotonic(gpb,xn,y,'z',z,'nvd', 1, 'optimize', 'on', ...
+%                  'opt', opt, 'optimf', @fminlbfgs);
+gpam = gp_monotonicbc(gpam,xn,y,'z',z,'nvbd', [-1; -1], 'nv',2, 'optimize', 'on', ...
                   'opt', opt, 'optimf', @fminlbfgs);
 gpiabm=gp_ia(gpbm,xn,y,'z',z);
 gp_plot(gpiabm,xn,y,'z',z,'zt',zt,'target','mu','normdata',nd)

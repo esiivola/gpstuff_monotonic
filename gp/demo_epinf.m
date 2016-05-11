@@ -76,6 +76,8 @@ opt=optimset('TolFun',1e-4,'TolX',1e-4,'Derivativecheck','off','display','iter')
 fprintf('Optimise the input-dependent model\n');
 gp = gp_optim(gp,x,y,'opt',opt, 'optimf', @fminscg);
 
+%%
+
 % make prediction to the data points
 [Ef, Varf, lpyt] = gp_pred(gp, x, y, xt, 'yt', yt);
 %prctmus = gp_predprctmu(gp, x, y, xt);
