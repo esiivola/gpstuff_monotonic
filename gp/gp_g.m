@@ -367,7 +367,7 @@ switch gp.type
         DCff = gp.lik.fh.cfg(gp.lik, x);
         if isfield(gp, 'lik_mono') 
           %DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(size(gp.xv,1)*length(nvd),1)]);
-          DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(sum(sum(gp.deriv_I)))]);
+          DCff{1}=diag(DCff{1}*[ones(size(x,1),1); zeros(sum(sum(gp.deriv_i)),1)]);
         end
         for i2 = 1:length(DCff)
           i1 = i1+1;

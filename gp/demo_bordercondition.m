@@ -64,14 +64,14 @@ title('sexp')
 % 2) sexp + monotonicity
 subplot(2,2,3)
 opt=optimset('TolX',1e-1,'TolFun',1e-1,'Display','iter');
-gpam=gpa;gpam.xv=xn(2:2:end);
+gpam=gpa;
 %gpam=gp_monotonic(gpam,xn,y,'z',z,'nvd', 1, 'optimize', 'on', ...
                   %'opt', opt, 'optimf', @fminlbfgs);
-gpam = gp_monotonicbc(gpam,xn,y,'z',z,'nvbd', [-1; -1], 'nv',2, 'optimize', 'on', ...
+gpam = gp_monotonicbc(gpam,xn,y,'z',z,'nvbd', [1; 1], 'nv',2, 'optimize', 'on', ...
                   'opt', opt, 'optimf', @fminlbfgs);
 gpiaam=gp_ia(gpam,xn,y,'z',z);
 % Do predictions for testing purposes
-[Eftm,Varftm]=gp_pred(gpiaam, xn,y,xn,'z',z);
+%[Eftm,Varftm]=gp_pred(gpiaam, xn,y,xn,'z',z);
 gp_plot(gpiaam,xn,y,'z',z,'zt',zt,'target','mu','normdata',nd)
 hold on
 plot(d.age,d.y./d.N*1000,'r*')
@@ -94,10 +94,10 @@ title('lin + sexp')
 % 4) lin + sexp + monotonicity
 subplot(2,2,4)
 opt=optimset('TolX',1e-1,'TolFun',1e-1,'Display','iter');
-gpbm=gpa;gpbm.xv=xn(2:2:end);
+gpbm=gpb;
 %gpbm=gp_monotonic(gpb,xn,y,'z',z,'nvd', 1, 'optimize', 'on', ...
 %                  'opt', opt, 'optimf', @fminlbfgs);
-gpam = gp_monotonicbc(gpam,xn,y,'z',z,'nvbd', [-1; -1], 'nv',2, 'optimize', 'on', ...
+gpbm = gp_monotonicbc(gpbm,xn,y,'z',z,'nvbd', [1; 1], 'nv',2, 'optimize', 'on', ...
                   'opt', opt, 'optimf', @fminlbfgs);
 gpiabm=gp_ia(gpbm,xn,y,'z',z);
 gp_plot(gpiabm,xn,y,'z',z,'zt',zt,'target','mu','normdata',nd)

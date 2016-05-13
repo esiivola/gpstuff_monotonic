@@ -77,6 +77,7 @@ nvbd=ip.Results.nvbd;
 if ~isfield(gp, 'lik_mono') || ~ismember(gp.lik_mono.type, {'Probit', 'Logit'}) 
  gp.lik_mono=lik_probit();
 end
+gp.lik_mono.nu = 1e-6; 
 % Set the virtual observations, here we use 25% of the observations as
 % virtual points at initialization
 if isempty(nv)
