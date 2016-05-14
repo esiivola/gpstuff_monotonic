@@ -1500,7 +1500,7 @@ function [g, gdata, gprior] = gpep_g(w, gp, x, y, varargin)
 
     end
 
-    if isfield(gp,'lik_mono') && isequal(gp.lik.type, 'Gaussian')
+    if isfield(gp,'lik_mono') && isequal(gp.lik.type, 'Gaussian') && ~isempty(gp.lik.p.sigma2)
       % Monotonic GP with Gaussian likelihood
       s2=gp.lik.sigma2;
 %       DCff = blkdiag(s2.*eye(n2), zeros(70));
