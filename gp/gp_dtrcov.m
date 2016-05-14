@@ -35,7 +35,7 @@ if (isfield(gp,'derivobs') && gp.derivobs)
   else
     isn = gp.deriv_i(:);
   end
-  K=zeros(length(x1)+sum(logical(isn)));
+  K=zeros(size(x1,1)+sum(logical(isn)));
   % Loop over covariance functions
   for i=1:ncf
     % Derivative observations
