@@ -39,56 +39,57 @@ xl = linspace(0,10,100)';
 fx = @(x) 0.6*x -0.1*x.^2 + sin(2*x)+ 3*exp(-1.2*x) + exp(-(10-x));
 
 bcx = [0;10]; % Points for virtual derivative observations
-bcy = [-1;1]; % Virtual derivative observations for corresponding points
+bcy = [-1; 1]; % Virtual derivative observations for corresponding points
 
 % construct GP
-cfc = gpcf_constant('constSigma2',10,'constSigma2_prior', prior_fixed);
-cfse = gpcf_sexp('lengthScale',1,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
-lik = lik_gaussian('sigma2', 0.001, 'sigma2_prior', prior_fixed);
-%lik = lik_gaussian();
+cfc = gpcf_constant('constSigma2',1,'constSigma2_prior', prior_fixed);
+cfse = gpcf_sexp('lengthScale',2,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
+lik = lik_gaussian('sigma2', 0.01, 'sigma2_prior', prior_fixed);
 gp = gp_set('cf', {cfc, cfse}, 'lik', lik);
 
-gpcf=gpcf_sexp('lengthScale',1,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
-lik=lik_gaussian();
-
-gp=gp_set('cf', {gpcf, gpcf_constant}, 'lik', lik, 'jitterSigma2', 1e-9);
-
-
+% Add virtual derivative observations to the model
 gp = gp_der(gp, bcx, bcy); % Add derivative observations to the model
 gp.lik_mono=lik_probit();
 gp=gp_set(gp,'latent_method','EP');
-% % the strictness of the monotonicity information
-gp.lik_mono.nu=1e-6; %gp.lik_mono.nu=1;
+% the strictness of the derivative information
+gp.lik_mono.nu=1e-9;
+
 % ----- conduct Bayesian optimization -----
 % draw initial point
 gp.latent_opt.init_prev='off';
 gp.latent_opt.maxiter=100;
 gpep_e('clearcache',gp);
 
+
 % Set the options for optimizer of the acquisition function
-optimf = @fmincon;
-optdefault=struct('GradObj','on','LargeScale','off','Algorithm','SQP','TolFun',1e-6,'TolX',1e-3);
-%opt=optimset(optdefault);
 opt=optimset('TolX',1e-4,'TolFun',1e-4); %'Display','iter');
 lb=0;     % lower bound of the input space
 ub=10;    % upper bound of the input space
 
 % draw initial point
+rng(2)
+x = 10*rand;
+y = fx(x);
+
+% draw initial point
 rng(3)
 x = 10*rand;
 y = fx(x);
+gp.lik_mono.nu=1e-6; %gp.lik_mono.nu=1;
 
 i1 = 1;
 maxiter = 15;
 improv = inf;   % improvement between two successive query points
-while i1 < maxiter && improv>1e-6
-%while i1 < maxiter
+figure;
+while i1 < maxiter && improv>1e-9
 
     % Train the GP model for objective function and calculate variables
     % that are needed when calculating the Expected improvement
     % (Acquisition function) 
     if i1>1
         gp = gp_optim(gp,x,y,'opt',opt, 'optimf', @fminscg);
+        [gpia,pth,th]=gp_ia(gp,x,y);%,'int_method','grid');
+        gp = gp_unpak(gp,sum(bsxfun(@times,pth,th)));
     end
     [K, C] = gp_trcov(gp,x);
     invC = inv(C);
@@ -96,33 +97,24 @@ while i1 < maxiter && improv>1e-6
     fmin = min( fx(x) );
     
     % Calculate EI and posterior of the function for visualization purposes
-    EI = expectedimprovement_eg(xl, gp, x, a, invC, fmin);
-    
-    [Ef,Varf] = gp_pred(gp, x, y, xl); %gp_pred(gp, x, [y; bcy], xl); 
+    [Ef,Varf] = gp_pred(gp, x, y, xl);
     Ef=Ef(1:size(xl,1));
     Varf=Varf(1:size(xl,1));
+    EI = expectedimprovement_e(xl, gp, x, Ef, Varf, fmin);
     
+    x_new = xl(find(EI==min(EI+double(ismember(xl,x,'rows'))*1e9)),:);
     % optimize acquisition function
     %    Note! Opposite to the standard notation we minimize negative Expected
     %    Improvement since Matlab optimizers seek for functions minimum
     % Here we use multiple starting points for the optimization so that we
     % don't crash into suboptimal mode
-    fh_eg = @(x_new) expectedimprovement_eg(x_new, gp, x, a, invC, fmin); % The function handle to the Expected Improvement function
-    indbest = find(y == fmin);
-    xstart = [linspace(0.5,9.5,5) x(indbest)+0.1*randn(1,2)];
-    for s1=1:length(xstart)
-        x_new(s1) = optimf(fh_eg, xstart(s1), [], [], [], [], lb, ub, [], opt);
-    end
-    EIs = expectedimprovement_eg(x_new(:), gp, x, a, invC, fmin);    
-    x_new = x_new( find(EIs==min(EIs),1) ); % pick up the point where Expected Improvement is maximized
-        
+    
     % put new sample point to the list of evaluation points
     x(end+1) = x_new;
     y(end+1) = fx(x(end));  % calculate the function value at query point
     x=x(:);y=y(:);
 
     % visualize
-    figure(1);
     clf
     subplot(2,1,1),hold on, title('function to be optimized and GP fit')
     %plot(xl,fx(xl))
@@ -142,12 +134,7 @@ while i1 < maxiter && improv>1e-6
     plot(xl,EI, 'r'), hold on
     plot(x(end),0, 'r*')
     plot(x(end)*[1 1],ylim, 'r--')
-    title('acquisition function')
-    figure(2)
-    clf;
-    [fr] = gp_rnd(gp, x(1:end-1,:), y(1:end-1,:), xl,'nsamp',10);
-    plot(xl,fr)
-    figure(1)   
+    title('acquisition function') 
     improv = abs(y(end) - y(end-1));
     i1=i1+1;
     pause
@@ -155,7 +142,7 @@ end
 
 %%  Part 2:
 %  One dimensional example 
-clear
+clear all;
 
 % Construct a function to be optimized
 xl = linspace(0,10,100)';
@@ -165,54 +152,54 @@ bcx = [0;10]; % Points for virtual derivative observations
 bcy = [-1;1]; % Virtual derivative observations for corresponding points
 
 % construct GP
-cfc = gpcf_constant('constSigma2',10,'constSigma2_prior', prior_fixed);
-cfse = gpcf_sexp('lengthScale',1,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
-lik = lik_gaussian('sigma2', 0.001, 'sigma2_prior', prior_fixed);
-%lik = lik_gaussian();
+cfc = gpcf_constant('constSigma2',1,'constSigma2_prior', prior_fixed);
+cfse = gpcf_sexp('lengthScale',2,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
+lik = lik_gaussian('sigma2', 0.01, 'sigma2_prior', prior_fixed);
 gp = gp_set('cf', {cfc, cfse}, 'lik', lik);
 
-gpcf=gpcf_sexp('lengthScale',1,'magnSigma2',1,'magnSigma2_prior',prior_sqrtt('s2',10));
-lik=lik_gaussian();
-
-gp=gp_set('cf', {gpcf, gpcf_constant}, 'lik', lik, 'jitterSigma2', 1e-9);
-
-
+% Add virtual derivative observations to the model
 gp = gp_der(gp, bcx, bcy); % Add derivative observations to the model
 gp.lik_mono=lik_probit();
 gp=gp_set(gp,'latent_method','EP');
-% % the strictness of the monotonicity information
+% the strictness of the derivative information
 gp.lik_mono.nu=10;
+
 % ----- conduct Bayesian optimization -----
 % draw initial point
 gp.latent_opt.init_prev='off';
 gp.latent_opt.maxiter=100;
 gpep_e('clearcache',gp);
 
+
 % Set the options for optimizer of the acquisition function
-optimf = @fmincon;
-optdefault=struct('GradObj','on','LargeScale','off','Algorithm','SQP','TolFun',1e-6,'TolX',1e-3);
-%opt=optimset(optdefault);
 opt=optimset('TolX',1e-4,'TolFun',1e-4); %'Display','iter');
 lb=0;     % lower bound of the input space
 ub=10;    % upper bound of the input space
 
 % draw initial point
+rng(2)
+x = 10*rand;
+y = fx(x);
+
+% draw initial point
 rng(3)
 x = 10*rand;
 y = fx(x);
+gp.lik_mono.nu=10; %gp.lik_mono.nu=1;
 
 i1 = 1;
 maxiter = 15;
 improv = inf;   % improvement between two successive query points
-while i1 < maxiter && improv>1e-6
-%while i1 < maxiter
+figure;
+while i1 < maxiter && improv>1e-9
 
     % Train the GP model for objective function and calculate variables
     % that are needed when calculating the Expected improvement
     % (Acquisition function) 
     if i1>1
         gp = gp_optim(gp,x,y,'opt',opt, 'optimf', @fminscg);
-        %gp=gp_optim(gp,x,y,'opt',opt, 'optimf', @fminlbfgs);
+        [gpia,pth,th]=gp_ia(gp,x,y);%,'int_method','grid');
+        gp = gp_unpak(gp,sum(bsxfun(@times,pth,th)));
     end
     [K, C] = gp_trcov(gp,x);
     invC = inv(C);
@@ -220,33 +207,24 @@ while i1 < maxiter && improv>1e-6
     fmin = min( fx(x) );
     
     % Calculate EI and posterior of the function for visualization purposes
-    EI = expectedimprovement_eg(xl, gp, x, a, invC, fmin);
-    
-    [Ef,Varf] = gp_pred(gp, x, y, xl); %gp_pred(gp, x, [y; bcy], xl); 
+    [Ef,Varf] = gp_pred(gp, x, y, xl);
     Ef=Ef(1:size(xl,1));
     Varf=Varf(1:size(xl,1));
+    EI = expectedimprovement_e(xl, gp, x, Ef, Varf, fmin);
     
+    x_new = xl(find(EI==min(EI+double(ismember(xl,x,'rows'))*1e9)),:);
     % optimize acquisition function
     %    Note! Opposite to the standard notation we minimize negative Expected
     %    Improvement since Matlab optimizers seek for functions minimum
     % Here we use multiple starting points for the optimization so that we
     % don't crash into suboptimal mode
-    fh_eg = @(x_new) expectedimprovement_eg(x_new, gp, x, a, invC, fmin); % The function handle to the Expected Improvement function
-    indbest = find(y == fmin);
-    xstart = [linspace(0.5,9.5,5) x(indbest)+0.1*randn(1,2)];
-    for s1=1:length(xstart)
-        x_new(s1) = optimf(fh_eg, xstart(s1), [], [], [], [], lb, ub, [], opt);
-    end
-    EIs = expectedimprovement_eg(x_new(:), gp, x, a, invC, fmin);    
-    x_new = x_new( find(EIs==min(EIs),1) ); % pick up the point where Expected Improvement is maximized
-        
+    
     % put new sample point to the list of evaluation points
-    x(end+1) = x_new;
+    x(end+1) = x_new(1);
     y(end+1) = fx(x(end));  % calculate the function value at query point
     x=x(:);y=y(:);
 
     % visualize
-    figure(3)  
     clf
     subplot(2,1,1),hold on, title('function to be optimized and GP fit')
     %plot(xl,fx(xl))
@@ -266,11 +244,7 @@ while i1 < maxiter && improv>1e-6
     plot(xl,EI, 'r'), hold on
     plot(x(end),0, 'r*')
     plot(x(end)*[1 1],ylim, 'r--')
-    title('acquisition function')
-    figure(4)
-    clf;
-    [fr] = gp_rnd(gp, x, y, xl,'nsamp',10);
-    plot(xl,fr) 
+    title('acquisition function') 
     improv = abs(y(end) - y(end-1));
     i1=i1+1;
     pause
@@ -283,9 +257,6 @@ clear
 % The objective function
 fx = @(x) -log( (mvnpdf([x(:,1) x(:,2)],[-1.5 -2.5], [1 0.3; 0.3 1]) + 0.3*mvnpdf([x(:,1) x(:,2)],[2 3], [3 0.5; 0.5 4])).*...
     mvnpdf([x(:,1) x(:,2)],[0 0], [100 0; 0 100])) ./15 -1;
-% 
-% fx = @(x) -log( (mvnpdf([x(:,1) x(:,2)],[-2 -2], [0.8 0.3; 0.3 0.8]) + 0.3*mvnpdf([x(:,1) x(:,2)],[2 5], [3 0.5; 0.5 4])).*...
-%     mvnpdf([x(:,1) x(:,2)],[0 0], [100 0; 0 100])) ./15 -1 + 0.3*mvnpdf([x(:,1) x(:,2)],[5 2], [3 0.5; 0.5 4]);
 
 % Help variables for visualization
 lb=-5;
@@ -308,23 +279,20 @@ xl = [X(:) Y(:)];
 Z = reshape(fx(xl),100,100);
 
 % construct GP to model the function
-cfc = gpcf_constant('constSigma2',1,'constSigma2_prior', prior_fixed);
+cfc = gpcf_constant('constSigma2',10,'constSigma2_prior', prior_fixed);
 cfl = gpcf_linear('coeffSigma2', .01, 'coeffSigma2_prior', prior_sqrtt()); 
 cfl2 = gpcf_squared('coeffSigma2', .01, 'coeffSigma2_prior', prior_sqrtt(), 'interactions', 'on');
-cfse = gpcf_sexp('lengthScale',2,'lengthScale_prior',prior_loggaussian('mu',log(5),'s2',.1),'magnSigma2',.1,'magnSigma2_prior',prior_sqrtt('s2',10));
-%lik = lik_gaussian('sigma2', 0.001, 'sigma2_prior', prior_fixed);
-lik = lik_gaussian('sigma2', 0.001, 'sigma2_prior', prior_sqrtt('s2',10));
-gp = gp_set('cf', {cfc, cfl, cfl2, cfse}, 'lik', lik);
+cfse = gpcf_sexp('lengthScale',2,'lengthScale_prior',prior_loggaussian('mu',log(2),'s2',1),'magnSigma2',.1,'magnSigma2_prior',prior_loggaussian('mu',0,'s2',1));
+lik = lik_gaussian('sigma2', 0.0001, 'sigma2_prior', prior_fixed);
 
-%gp = gp_set('cf', {cfc, cfse}, 'lik', lik);
-
+gp = gp_set('cf', {cfc, cfse}, 'lik', lik);
 
 gp = gp_der(gp, xd, yd, logical(yd));
 if ~isfield(gp, 'lik_mono') || ~ismember(gp.lik_mono.type, {'Probit', 'Logit'}) 
  gp.lik_mono=lik_probit();
 end
 %the strictness of the monotonicity information
-gp.lik_mono.nu=1;
+gp.lik_mono.nu=1e-6;
 gp=gp_set(gp,'latent_method','EP');
 
 
@@ -343,13 +311,15 @@ ub=[5 5];   % upper bound of the input space
 
 % draw initial points
 x = [-4 -4;-4 4;4 -4;4 4;0 0];
+x = [-3 -3;-3 3;3 -3;3 3];
+x = [-2 -2;-2 2;2 -2;2 2];
 y = fx(x);
 
-figure, % figure for visualization
+%figure, % figure for visualization
 i1 = 1;
 maxiter = 20;
 improv = inf;   % improvement between two successive query points
-while i1 < maxiter && improv>1e-6
+while i1 < maxiter %&& improv>1e-9
 %while i1 < maxiter
 
     % Train the GP model for objective function and calculate variables
@@ -357,19 +327,14 @@ while i1 < maxiter && improv>1e-6
     % (Acquisition function) 
     if i1>1
         gp = gp_optim(gp,x,y);
-        %gp = gp_optim(gp,x,y,'opt',opt, 'optimf', @fminlbfgs);
-        %gp = gp_optim(gp,x,[y; gp.deriv_y_vals(gp.deriv_i)]);
         [gpia,pth,th]=gp_ia(gp,x,y);
         gp = gp_unpak(gp,sum(bsxfun(@times,pth,th)));
     end
-    [K, C] = gp_trcov(gp,x);
-    invC = inv(C);
-    a = C\[y; gp.deriv_y_vals(gp.deriv_i)];
-    fmin = min( fx(x) );
+    fmin = min( y );
     
     % Calculate EI and the posterior of the function for visualization
     [Ef,Varf] = gp_pred(gp, x, y, xl);
-    EI = expectedimprovement_eg(xl, gp, x, a, invC, fmin);
+    EI = expectedimprovement_e(xl, gp, x, Ef, Varf, fmin);
     
     % optimize acquisition function
     %  * Note! Opposite to the standard notation we minimize negative Expected
@@ -377,14 +342,9 @@ while i1 < maxiter && improv>1e-6
     %  * Note! We alternate the acquisition function between Expected
     %    Improvement and expected variance. The latter helps the
     %    optimization so that it does not get stuck in local mode
-    % Here we use multiple starting points for the optimization so that we
-    % don't crash into suboptimal mode of acquisition function
 
-    if mod(i1,4)==0
-     x_new = xl(find(Varf==min(Varf)),:);
-    else
-     x_new = xl(find(EI==min(EI)),:);
-    end
+    [~,mini]=min(EI+double(ismember(xl,x,'rows'))*1e9);
+    x_new = xl(mini,:);
     
     % put new sample point to the list of evaluation points
     x(end+1,:) = x_new;
@@ -399,7 +359,6 @@ while i1 < maxiter && improv>1e-6
     pcolor(X,Y,Z),shading flat
     clim = caxis;
     l1=plot(x(1:end-1,1),x(1:end-1,2), 'rx', 'MarkerSize', 10);
-    %plot(x(end,1),x(end,2), 'ro', 'MarkerSize', 10)
     l3=plot(x(end,1),x(end,2), 'ro', 'MarkerSize', 10, 'linewidth', 3);
     legend([l1,l3], {'function evaluation points','The next query point'})
     % Plot the posterior mean of the GP model for the objective function
@@ -407,6 +366,7 @@ while i1 < maxiter && improv>1e-6
     box on
     pcolor(X,Y,reshape(Ef(1:size(xl,1)),100,100)),shading flat
     caxis(clim)
+    l3=plot(x(end,1),x(end,2), 'ro', 'MarkerSize', 10, 'linewidth', 3);
     % Plot the posterior variance of GP model
     subplot(2,2,4),hold on, title('GP prediction, variance')
     box on
@@ -428,6 +388,7 @@ while i1 < maxiter && improv>1e-6
     exp(p)
     pause
 end
+
 
 
 
